@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Build History - rdgen-ngx</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #1a1a1a; color: #fff; padding: 20px; }
+        h1 { color: #4a9eff; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #333; }
+        th { background: #2a2a2a; color: #4a9eff; }
+        tr:hover { background: #2a2a2a; }
+        .status-success { color: #4caf50; }
+        .status-pending { color: #ff9800; }
+        .status-failed { color: #f44336; }
+        a { color: #4a9eff; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .btn { background: #4a9eff; color: #fff; padding: 8px 16px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>Build History</h1>
+    <p><a href="/" class="btn">+ New Build</a></p>
+    <table>
+        <tr>
+            <th>Date</th>
+            <th>Platform</th>
+            <th>Filename</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+        {% for build in builds %}
+        <tr>
+            <td>{{ build.created_at|date:"M d, Y H:i" }}</td>
+            <td>{{ build.platform|default:"-" }}</td>
+            <td>{{ build.filename|default:"-" }}</td>
+            <td class="{% if 'Success' in build.status %}status-success{% elif 'Starting' in build.status or 'progress' in build.status %}status-pending{% else %}status-failed{% endif %}">
+                {{ build.status }}
+            </td>
+            <td><a href="/builds/{{ build.uuid }}/">View</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5">No builds yet</td></tr>
+        {% endfor %}
+    </table>
+</body>
+</html>

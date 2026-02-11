@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Build Status - {{ build.filename }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #1a1a1a; color: #fff; padding: 20px; max-width: 800px; margin: 0 auto; }
+        h1 { color: #4a9eff; }
+        .card { background: #2a2a2a; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .label { color: #888; font-size: 12px; text-transform: uppercase; }
+        .value { font-size: 18px; margin-bottom: 15px; }
+        .status-success { color: #4caf50; }
+        .status-pending { color: #ff9800; }
+        .download-btn { display: inline-block; background: #4caf50; color: #fff; padding: 12px 24px; border-radius: 4px; text-decoration: none; margin: 5px; }
+        .download-btn:hover { background: #45a049; }
+        a { color: #4a9eff; }
+        .files { margin-top: 20px; }
+    </style>
+    {% if 'progress' in build.status or 'Starting' in build.status %}
+    <meta http-equiv="refresh" content="10">
+    {% endif %}
+</head>
+<body>
+    <p><a href="/builds/">&larr; All Builds</a></p>
+    <h1>Build: {{ build.filename|default:"Unknown" }}</h1>
+    
+    <div class="card">
+        <div class="label">Platform</div>
+        <div class="value">{{ build.platform|default:"-" }}</div>
+        
+        <div class="label">Status</div>
+        <div class="value {% if 'Success' in build.status %}status-success{% elif 'Starting' in build.status or 'progress' in build.status %}status-pending{% endif %}">
+            {{ build.status }}
+            {% if 'progress' in build.status or 'Starting' in build.status %}
+            <br><small>(This page refreshes automatically)</small>
+            {% endif %}
+        </div>
+        
+        <div class="label">Created</div>
+        <div class="value">{{ build.created_at|date:"M d, Y H:i" }}</div>
+        
+        {% if build.email %}
+        <div class="label">Notification Email</div>
+        <div class="value">{{ build.email }}</div>
+        {% endif %}
+    </div>
+    
+    {% if files %}
+    <div class="card files">
+        <div class="label">Downloads</div>
+        {% for file in files %}
+        <a href="/download?uuid={{ uuid }}&filename={{ file }}" class="download-btn">
+            ⬇ {{ file }}
+        </a>
+        {% endfor %}
+    </div>
+    {% elif 'Success' in build.status %}
+    <div class="card">
+        <p>Build completed but files not found. They may have expired.</p>
+    </div>
+    {% endif %}
+    
+    <div class="card">
+        <div class="label">Build ID</div>
+        <div class="value" style="font-family: monospace; font-size: 14px;">{{ uuid }}</div>
+        <p><small>Bookmark this page to check status later</small></p>
+    </div>
+</body>
+</html>

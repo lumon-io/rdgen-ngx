@@ -1,0 +1,40 @@
+services:
+  rdgen:
+    build: .
+    # Or use pre-built image:
+    # image: ghcr.io/YOUR_USERNAME/rdgen-ngx:latest
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # Required settings
+      SECRET_KEY: ${SECRET_KEY:-change-me-to-a-random-string}
+      GHUSER: ${GHUSER}
+      GHBEARER: ${GHBEARER}
+      REPONAME: ${REPONAME:-rustdesk}
+      GHBRANCH: ${GHBRANCH:-master}
+      ZIP_PASSWORD: ${ZIP_PASSWORD}
+      GENURL: ${GENURL}
+      PROTOCOL: ${PROTOCOL:-https}
+
+      # Email notifications (optional)
+      EMAIL_HOST: ${EMAIL_HOST:-}
+      EMAIL_PORT: ${EMAIL_PORT:-587}
+      EMAIL_USE_TLS: ${EMAIL_USE_TLS:-true}
+      EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
+      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-}
+    volumes:
+      # Persist build artifacts and database
+      - rdgen_data:/opt/rdgen/exe
+      - rdgen_db:/opt/rdgen/db
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  rdgen_data:
+  rdgen_db:
