@@ -7,12 +7,41 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg-primary: #000;
+            --bg-secondary: #111;
+            --bg-input: #222;
+            --text-primary: #e0e0e0;
+            --text-secondary: #bbb;
+            --text-heading: #fff;
+            --border-color: #444;
+            --accent-color: #0077ff;
+            --accent-hover: #0066cc;
+            --tooltip-bg: #1a3a5c;
+            --tooltip-border: #2a5a8c;
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #f5f5f5;
+            --bg-secondary: #fff;
+            --bg-input: #fff;
+            --text-primary: #333;
+            --text-secondary: #555;
+            --text-heading: #222;
+            --border-color: #ccc;
+            --accent-color: #0077ff;
+            --accent-hover: #0066cc;
+            --tooltip-bg: #e8f4fd;
+            --tooltip-border: #b8d4e8;
+        }
+
         body {
             font-family: 'Roboto', sans-serif;
-            background-color: #000;
-            color: #e0e0e0;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
             margin: 0;
             padding: 20px;
+            transition: background-color 0.3s, color 0.3s;
         }
         .platform {
             display: grid;
@@ -34,34 +63,36 @@
             flex: 50%;
         }
         h1 {
-            color: #fff;
+            color: var(--text-heading);
             text-align: center;
             grid-column: 1 / -1;
         }
         h2 {
-            color: #fff;
+            color: var(--text-heading);
             margin-top: 0;
         }
         .section {
-            background-color: #111;
+            background-color: var(--bg-secondary);
             border-radius: 8px;
             padding: 20px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             flex: 50%;
+            transition: background-color 0.3s;
         }
         label {
             display: block;
             margin-bottom: 5px;
-            color: #bbb;
+            color: var(--text-secondary);
         }
         input[type="text"], input[type="password"], select, textarea {
             width: 100%;
             padding: 8px;
             margin-bottom: 10px;
-            background-color: #222;
-            border: 1px solid #444;
+            background-color: var(--bg-input);
+            border: 1px solid var(--border-color);
             border-radius: 4px;
-            color: #fff;
+            color: var(--text-primary);
+            transition: background-color 0.3s, border-color 0.3s, color 0.3s;
         }
         input[type="radio"], input[type="checkbox"] {
             margin-right: 5px;
@@ -85,7 +116,7 @@
         }
         .platform-icon {
             font-size: 32px;
-            color: #bbb;
+            color: var(--text-secondary);
             cursor: pointer;
             transition: color 0.3s ease;
         }
@@ -129,11 +160,12 @@
             position: fixed;
             top: 20px; /* Adjust as needed */
             left: 20px; /* Adjust as needed */
-            background-color: #111; /* Match your section background */
+            background-color: var(--bg-secondary); /* Match your section background */
             padding: 0px;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             z-index: 100; /* Ensure it's above other content */
+            transition: background-color 0.3s;
         }
         .save-load-section {
             display: none; /* Initially hidden */
@@ -150,8 +182,8 @@
         }
         .tooltip-text {
             visibility: hidden;
-            background-color: #1a3a5c;
-            color: #e0e0e0;
+            background-color: var(--tooltip-bg);
+            color: var(--text-primary);
             text-align: left;
             padding: 10px 12px;
             border-radius: 6px;
@@ -164,7 +196,8 @@
             font-size: 12px;
             line-height: 1.4;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            border: 1px solid #2a5a8c;
+            border: 1px solid var(--tooltip-border);
+            transition: background-color 0.3s, border-color 0.3s;
         }
         .has-tooltip:hover .tooltip-text {
             visibility: visible;
@@ -252,9 +285,56 @@
             transform: rotate(360deg);
             color: #0095EA;
         }
+        /* Theme toggle button */
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            z-index: 1000;
+            transition: all 0.3s;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        .theme-toggle:hover {
+            transform: scale(1.1);
+        }
+
+        /* Footer styles */
+        .footer {
+            text-align: center;
+            padding: 30px 20px;
+            margin-top: 40px;
+            border-top: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        .footer a {
+            color: var(--accent-color);
+            text-decoration: none;
+        }
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        .footer-credits {
+            margin-top: 10px;
+            font-size: 12px;
+            opacity: 0.7;
+        }
       </style>
 </head>
 <body>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode">
+        <i class="fas fa-moon" id="theme-icon"></i>
+    </button>
     <h1><i class="fas fa-cogs"></i> RustDesk Custom Client Builder</h1>
     <form id="myForm" action="/generator" method="post" enctype="multipart/form-data">
         <div class="save-load-section-container">
@@ -437,24 +517,60 @@
                 <button type="submit"><i class="fas fa-rocket"></i> Generate Custom Client</button>
             </div>
         </div>
-        <div style="text-align: center; margin: 30px 0;">
-            <a href="https://github.com/bryangerlach/rdgen" 
-            target="_blank" 
-            class="sponsor-button">
-                <i class="fab fa-github"></i>
-                Source Code on Github
-            </a>
-        </div>
-        <div style="text-align: center; margin: 30px 0;">
-            <a href="https://github.com/sponsors/bryangerlach?o=esb"
-            target="_blank" 
-            class="sponsor-button">
-                <i class="fab fa-github"></i>
-                Donate
-            </a>
-        </div>
     </form>
+
+    <div class="footer">
+        <p>
+            <strong>rdgen-ngx</strong> - Next-generation RustDesk Custom Client Generator
+        </p>
+        <p>
+            <a href="https://github.com/lumon-io/rdgen-ngx" target="_blank">
+                <i class="fab fa-github"></i> View on GitHub
+            </a>
+            &nbsp;&nbsp;|&nbsp;&nbsp;
+            <a href="https://github.com/lumon-io/rdgen-ngx/issues" target="_blank">
+                <i class="fas fa-bug"></i> Report Issue
+            </a>
+        </p>
+        <div class="footer-credits">
+            Created by <a href="https://github.com/lumon-io" target="_blank">Jeremy Lynnes</a>
+            &nbsp;|&nbsp;
+            Based on <a href="https://github.com/bryangerlach/rdgen" target="_blank">rdgen by Bryan Gerlach</a>
+        </div>
+    </div>
     <script>
+        // ============= Theme Toggle =============
+        function toggleTheme() {
+            const body = document.body;
+            const icon = document.getElementById('theme-icon');
+            const currentTheme = body.getAttribute('data-theme');
+
+            if (currentTheme === 'light') {
+                body.removeAttribute('data-theme');
+                icon.classList.remove('fa-sun');
+                icon.classList.add('fa-moon');
+                localStorage.setItem('rdgen-theme', 'dark');
+            } else {
+                body.setAttribute('data-theme', 'light');
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+                localStorage.setItem('rdgen-theme', 'light');
+            }
+        }
+
+        // Apply saved theme on page load
+        (function() {
+            const savedTheme = localStorage.getItem('rdgen-theme');
+            const icon = document.getElementById('theme-icon');
+            if (savedTheme === 'light') {
+                document.body.setAttribute('data-theme', 'light');
+                if (icon) {
+                    icon.classList.remove('fa-moon');
+                    icon.classList.add('fa-sun');
+                }
+            }
+        })();
+
         // Platform-specific recommended settings
         const platformDefaults = {
             'windows': {

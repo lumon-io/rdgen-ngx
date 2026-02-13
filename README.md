@@ -23,6 +23,22 @@ A web-based tool for generating customized RustDesk clients with your own brandi
 | **Platform Defaults** | Auto-set recommended options when selecting a platform |
 | **Tooltips** | Hover over any option to see a detailed explanation |
 | **Fixed macOS Bundle ID** | Custom builds no longer conflict with existing RustDesk installs |
+| **Light/Dark Mode** | Toggle between light and dark themes |
+| **Local Builder** | Build clients locally on your own hardware (faster!) |
+
+## Build Options
+
+### Option 1: GitHub Actions (Default)
+Builds run on GitHub's servers. Takes 30-45 minutes but requires no local setup.
+
+### Option 2: Local Builder (Faster)
+Build on your own hardware for 3-4x faster builds. See [local-builder/README.md](local-builder/README.md).
+
+| Method | Build Time | Requirements |
+|--------|------------|--------------|
+| GitHub Actions | 30-45 min | GitHub account |
+| Local (8-core) | 10-15 min | Docker, 16GB RAM |
+| Local (16+ cores) | 5-10 min | Docker, 32GB RAM |
 
 ## Quick Start
 
@@ -30,7 +46,7 @@ A web-based tool for generating customized RustDesk clients with your own brandi
 
 ```bash
 # Clone the repo
-git clone https://github.com/YOUR_USERNAME/rdgen-ngx.git
+git clone https://github.com/lumon-io/rdgen-ngx.git
 cd rdgen-ngx
 
 # Configure environment

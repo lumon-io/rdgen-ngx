@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  builder:
+    build: .
+    image: rdgen-builder:latest
+    volumes:
+      - ./output:/output
+      - ./config.json:/config.json:ro
+    environment:
+      - PLATFORM=${PLATFORM:-linux}
+      - VERSION=${VERSION:-master}
+      - JOBS=${JOBS:-4}
+    command: ["--platform", "${PLATFORM:-linux}", "--version", "${VERSION:-master}", "--jobs", "${JOBS:-4}"]
+
+  # Pre-built image from GitHub Container Registry (when published)
+  # builder-prebuilt:
+  #   image: ghcr.io/lumon-io/rdgen-builder:latest
+  #   volumes:
+  #     - ./output:/output
+  #     - ./config.json:/config.json:ro

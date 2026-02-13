@@ -2,24 +2,85 @@
 <html>
 <head>
     <title>Build History - rdgen-ngx</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { font-family: Arial, sans-serif; background: #1a1a1a; color: #fff; padding: 20px; }
-        h1 { color: #4a9eff; }
+        :root {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2a2a2a;
+            --text-primary: #fff;
+            --text-secondary: #aaa;
+            --border-color: #333;
+            --accent-color: #4a9eff;
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #f5f5f5;
+            --bg-secondary: #fff;
+            --text-primary: #333;
+            --text-secondary: #666;
+            --border-color: #ddd;
+            --accent-color: #0077ff;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        h1 { color: var(--accent-color); }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #333; }
-        th { background: #2a2a2a; color: #4a9eff; }
-        tr:hover { background: #2a2a2a; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color); }
+        th { background: var(--bg-secondary); color: var(--accent-color); }
+        tr:hover { background: var(--bg-secondary); }
         .status-success { color: #4caf50; }
         .status-pending { color: #ff9800; }
         .status-failed { color: #f44336; }
-        a { color: #4a9eff; text-decoration: none; }
+        a { color: var(--accent-color); text-decoration: none; }
         a:hover { text-decoration: underline; }
-        .btn { background: #4a9eff; color: #fff; padding: 8px 16px; border-radius: 4px; }
+        .btn { background: var(--accent-color); color: #fff; padding: 8px 16px; border-radius: 4px; display: inline-block; }
+        .btn:hover { opacity: 0.9; }
+
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: var(--text-primary);
+            z-index: 1000;
+            transition: all 0.3s;
+        }
+        .theme-toggle:hover { transform: scale(1.1); }
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            margin-top: 40px;
+            border-top: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
     </style>
 </head>
 <body>
-    <h1>Build History</h1>
-    <p><a href="/" class="btn">+ New Build</a></p>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode">
+        <i class="fas fa-moon" id="theme-icon"></i>
+    </button>
+
+    <h1><i class="fas fa-history"></i> Build History</h1>
+    <p><a href="/" class="btn"><i class="fas fa-plus"></i> New Build</a></p>
     <table>
         <tr>
             <th>Date</th>
@@ -42,5 +103,42 @@
         <tr><td colspan="5">No builds yet</td></tr>
         {% endfor %}
     </table>
+
+    <div class="footer">
+        <a href="https://github.com/lumon-io/rdgen-ngx" target="_blank">rdgen-ngx</a> by Jeremy Lynnes
+    </div>
+
+    <script>
+        function toggleTheme() {
+            const body = document.body;
+            const icon = document.getElementById('theme-icon');
+            const currentTheme = body.getAttribute('data-theme');
+
+            if (currentTheme === 'light') {
+                body.removeAttribute('data-theme');
+                icon.classList.remove('fa-sun');
+                icon.classList.add('fa-moon');
+                localStorage.setItem('rdgen-theme', 'dark');
+            } else {
+                body.setAttribute('data-theme', 'light');
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+                localStorage.setItem('rdgen-theme', 'light');
+            }
+        }
+
+        // Apply saved theme on page load
+        (function() {
+            const savedTheme = localStorage.getItem('rdgen-theme');
+            const icon = document.getElementById('theme-icon');
+            if (savedTheme === 'light') {
+                document.body.setAttribute('data-theme', 'light');
+                if (icon) {
+                    icon.classList.remove('fa-moon');
+                    icon.classList.add('fa-sun');
+                }
+            }
+        })();
+    </script>
 </body>
 </html>
