@@ -66,18 +66,16 @@ def customize_rustdesk(config, source_dir):
     os.chdir(source_dir)
 
     # === App Name ===
+    # Note: We don't modify Cargo.toml package name as it breaks the build
+    # The display name is set in Flutter UI, binary is renamed during packaging
     appname = config.get('appname', '')
     exename = config.get('exename', 'rustdesk')
 
-    # Use exename (sanitized) for Cargo.toml package name (no spaces allowed)
-    if exename:
-        print(f"  Setting package name: {exename}")
-        replace_in_file('Cargo.toml', 'name = "rustdesk"', f'name = "{exename}"')
-
-    # Use appname for display name in Flutter UI
     if appname:
         print(f"  Setting display name: {appname}")
+        # Update Flutter display strings
         replace_in_file('flutter/lib/consts.dart', 'RustDesk', appname)
+        replace_in_file('flutter/lib/common.dart', 'RustDesk', appname)
 
     # === Server Configuration ===
     server_ip = config.get('serverIP', '')
