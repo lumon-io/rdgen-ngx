@@ -67,11 +67,16 @@ def customize_rustdesk(config, source_dir):
 
     # === App Name ===
     appname = config.get('appname', '')
+    exename = config.get('exename', 'rustdesk')
+
+    # Use exename (sanitized) for Cargo.toml package name (no spaces allowed)
+    if exename:
+        print(f"  Setting package name: {exename}")
+        replace_in_file('Cargo.toml', 'name = "rustdesk"', f'name = "{exename}"')
+
+    # Use appname for display name in Flutter UI
     if appname:
-        print(f"  Setting app name: {appname}")
-        # Update Cargo.toml
-        replace_in_file('Cargo.toml', 'name = "rustdesk"', f'name = "{appname}"')
-        # Update Flutter
+        print(f"  Setting display name: {appname}")
         replace_in_file('flutter/lib/consts.dart', 'RustDesk', appname)
 
     # === Server Configuration ===
