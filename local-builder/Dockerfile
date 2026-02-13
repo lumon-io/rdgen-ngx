@@ -38,6 +38,12 @@ RUN apt-get update && apt-get install -y \
     libssl-dev \
     libopus-dev \
     llvm-dev \
+    libavcodec-dev \
+    libavformat-dev \
+    libavutil-dev \
+    libswscale-dev \
+    libswresample-dev \
+    libvpx-dev \
     nasm \
     ninja-build \
     pkg-config \
