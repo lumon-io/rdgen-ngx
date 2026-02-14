@@ -12,6 +12,7 @@ import uuid
 import pyzipper
 from django.conf import settings as _settings
 from django.core.mail import send_mail
+from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Q
 from .forms import GenerateForm
 from .models import GithubRun
@@ -219,11 +220,15 @@ def generator_view(request):
                 decodedCustom['override-settings']['enable-terminal'] = 'Y' if enableTerminal else 'N'
 
             for line in defaultManual.splitlines():
-                k, value = line.split('=')
+                if '=' not in line:
+                    continue
+                k, _, value = line.partition('=')
                 decodedCustom['default-settings'][k.strip()] = value.strip()
 
             for line in overrideManual.splitlines():
-                k, value = line.split('=')
+                if '=' not in line:
+                    continue
+                k, _, value = line.partition('=')
                 decodedCustom['override-settings'][k.strip()] = value.strip()
             
             decodedCustomJson = json.dumps(decodedCustom)
@@ -328,7 +333,7 @@ def generator_view(request):
                 'X-GitHub-Api-Version': '2022-11-28'
             }
             create_github_run(myuuid, email=notification_email, platform=platform, filename=filename)
-            response = requests.post(url, json=data, headers=headers)
+            response = requests.post(url, json=data, headers=headers, timeout=30)
             print(response)
             if response.status_code == 204 or response.status_code == 200:
                 return render(request, 'waiting.html', {'filename':filename, 'uuid':myuuid, 'status':"Starting generator...please wait", 'platform':platform})
@@ -396,10 +401,16 @@ def create_github_run(myuuid, email=None, platform=None, filename=None):
     )
     new_github_run.save()
 
+@csrf_exempt
 def update_github_run(request):
-    data = json.loads(request.body)
-    myuuid = data.get('uuid')
-    mystatus = data.get('status')
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return HttpResponse("Invalid JSON", status=400)
+    myuuid = data.get('uuid', '')
+    mystatus = data.get('status', '')
+    if not myuuid or not mystatus:
+        return HttpResponse("Missing uuid or status", status=400)
     GithubRun.objects.filter(Q(uuid=myuuid)).update(status=mystatus)
     return HttpResponse('')
 
@@ -443,9 +454,13 @@ def resize_and_encode_icon(imagefile):
     return resized64
  
 #the following is used when accessed from an external source, like the rustdesk api server
+@csrf_exempt
 def startgh(request):
     #print(request)
-    data_ = json.loads(request.body)
+    try:
+        data_ = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return HttpResponse("Invalid JSON", status=400)
     ####from here run the github action, we need user, repo, access token.
     url = 'https://api.github.com/repos/'+_settings.GHUSER+'/'+_settings.REPONAME+'/actions/workflows/generator-'+data_.get('platform')+'.yml/dispatches'  
     data = {
@@ -469,7 +484,7 @@ def startgh(request):
         'Authorization': 'Bearer '+_settings.GHBEARER,
         'X-GitHub-Api-Version': '2022-11-28'
     }
-    response = requests.post(url, json=data, headers=headers)
+    response = requests.post(url, json=data, headers=headers, timeout=30)
     print(response)
     return HttpResponse(status=204)
 
@@ -481,11 +496,16 @@ def save_png(file, uuid, domain, name):
 
     if isinstance(file, str):  # Check if it's a base64 string
         try:
-            header, encoded = file.split(';base64,')
+            if ';base64,' not in file:
+                print("Invalid base64 data: missing ;base64, marker")
+                return None
+            header, encoded = file.split(';base64,', 1)
             decoded_img = base64.b64decode(encoded)
+            if len(decoded_img) > 5 * 1024 * 1024:  # 5MB limit
+                raise ValueError("Image too large")
             file = ContentFile(decoded_img, name=name) # Create a file-like object
-        except ValueError:
-            print("Invalid base64 data")
+        except ValueError as e:
+            print(f"Invalid base64 data: {e}")
             return None  # Or handle the error as you see fit
         except Exception as e:  # Catch general exceptions during decoding
             print(f"Error decoding base64: {e}")
@@ -532,6 +552,7 @@ These links will expire in 24 hours.
     except Exception as e:
         print(f'Failed to send email: {e}')
 
+@csrf_exempt
 def save_custom_client(request):
     try:
         myuuid = _validate_uuid(request.POST.get('uuid', ''))
@@ -555,9 +576,13 @@ def save_custom_client(request):
     
     return HttpResponse("File saved successfully!")
 
+@csrf_exempt
 def cleanup_secrets(request):
     # Pass the UUID as a query param or in JSON body
-    data = json.loads(request.body)
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return HttpResponse("Invalid JSON", status=400)
     my_uuid = data.get('uuid', '')
 
     try:
@@ -643,6 +668,10 @@ def save_config(request):
 
     try:
         data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    try:
         name = data.get('name', '').strip()
         config_data = data.get('config', {})
 
@@ -689,6 +718,10 @@ def delete_config(request):
 
     try:
         data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    try:
         name = data.get('name', '')
 
         if not name:
