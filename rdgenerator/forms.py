@@ -1,5 +1,9 @@
+import logging
+
 from django import forms
 from PIL import Image
+
+logger = logging.getLogger(__name__)
 
 class GenerateForm(forms.Form):
     #Platform
@@ -87,7 +91,7 @@ class GenerateForm(forms.Form):
     removeNewVersionNotif = forms.BooleanField(initial=False, required=False)
 
     def clean_iconfile(self):
-        print("checking icon")
+        logger.debug("Checking icon file validation")
         image = self.cleaned_data['iconfile']
         if image:
             try:

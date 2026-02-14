@@ -127,7 +127,7 @@ def generator_view(request):
                     iconfile = form.cleaned_data.get('iconbase64')
                 iconlink_url, iconlink_uuid, iconlink_file = save_png(iconfile,myuuid,full_url,"icon.png")
             except Exception:
-                print("failed to get icon, using default")
+                logger.warning("Failed to get icon, using default")
                 iconlink_url = "false"
                 iconlink_uuid = "false"
                 iconlink_file = "false"
@@ -137,7 +137,7 @@ def generator_view(request):
                     logofile = form.cleaned_data.get('logobase64')
                 logolink_url, logolink_uuid, logolink_file = save_png(logofile,myuuid,full_url,"logo.png")
             except Exception:
-                print("failed to get logo")
+                logger.warning("Failed to get logo, using default")
                 logolink_url = "false"
                 logolink_uuid = "false"
                 logolink_file = "false"
@@ -147,7 +147,7 @@ def generator_view(request):
                     privacyfile = form.cleaned_data.get('privacybase64')
                 privacylink_url, privacylink_uuid, privacylink_file = save_png(privacyfile,myuuid,full_url,"privacy.png")
             except Exception:
-                print("failed to get logo")
+                logger.warning("Failed to get logo, using default")
                 privacylink_url = "false"
                 privacylink_uuid = "false"
                 privacylink_file = "false"
@@ -325,7 +325,7 @@ def generator_view(request):
                     "zip_url":zip_url
                 }
             } 
-            #print(data)
+            #logger.debug("GitHub dispatch data: %s", data)
             headers = {
                 'Accept':  'application/vnd.github+json',
                 'Content-Type': 'application/json',
@@ -334,7 +334,7 @@ def generator_view(request):
             }
             create_github_run(myuuid, email=notification_email, platform=platform, filename=filename)
             response = requests.post(url, json=data, headers=headers, timeout=30)
-            print(response)
+            logger.info("GitHub API response: %s", response.status_code)
             if response.status_code == 204 or response.status_code == 200:
                 return render(request, 'waiting.html', {'filename':filename, 'uuid':myuuid, 'status':"Starting generator...please wait", 'platform':platform})
             else:
@@ -450,13 +450,13 @@ def resize_and_encode_icon(imagefile):
 
     # Return the Base64 encoded representation of the resized image
     resized64 = base64.b64encode(resized_imagefile.read())
-    #print(resized64)
+    #logger.debug("Resized image base64 generated")
     return resized64
  
 #the following is used when accessed from an external source, like the rustdesk api server
 @csrf_exempt
 def startgh(request):
-    #print(request)
+    #logger.debug("Received startgh request")
     try:
         data_ = json.loads(request.body)
     except (json.JSONDecodeError, ValueError):
@@ -485,7 +485,7 @@ def startgh(request):
         'X-GitHub-Api-Version': '2022-11-28'
     }
     response = requests.post(url, json=data, headers=headers, timeout=30)
-    print(response)
+    logger.info("GitHub API response: %s", response.status_code)
     return HttpResponse(status=204)
 
 def save_png(file, uuid, domain, name):
@@ -497,7 +497,7 @@ def save_png(file, uuid, domain, name):
     if isinstance(file, str):  # Check if it's a base64 string
         try:
             if ';base64,' not in file:
-                print("Invalid base64 data: missing ;base64, marker")
+                logger.warning("Invalid base64 data: missing ;base64, marker")
                 return None
             header, encoded = file.split(';base64,', 1)
             decoded_img = base64.b64decode(encoded)
@@ -505,10 +505,10 @@ def save_png(file, uuid, domain, name):
                 raise ValueError("Image too large")
             file = ContentFile(decoded_img, name=name) # Create a file-like object
         except ValueError as e:
-            print(f"Invalid base64 data: {e}")
+            logger.warning("Invalid base64 data: %s", e)
             return None  # Or handle the error as you see fit
         except Exception as e:  # Catch general exceptions during decoding
-            print(f"Error decoding base64: {e}")
+            logger.warning("Error decoding base64: %s", e)
             return None
         
     with open(file_save_path, "wb+") as f:
@@ -529,10 +529,10 @@ def send_notification_email(email, uuid, filename, platform):
     
     if platform == 'macos':
         base_name = filename.replace('.dmg', '').replace('-x86_64', '').replace('-aarch64', '')
-        download_links = f"""Intel Mac: {genurl}/download?uuid={uuid}&filename={base_name}-x86_64.dmg
-Apple Silicon (M1/M2/M3): {genurl}/download?uuid={uuid}&filename={base_name}-aarch64.dmg"""
+        download_links = f"""Intel Mac: {genurl}/download?uuid={uuid}&filename={quote(base_name + '-x86_64.dmg')}
+Apple Silicon (M1/M2/M3): {genurl}/download?uuid={uuid}&filename={quote(base_name + '-aarch64.dmg')}"""
     else:
-        download_links = f'{genurl}/download?uuid={uuid}&filename={filename}'
+        download_links = f'{genurl}/download?uuid={uuid}&filename={quote(filename)}'
     
     message = f"""Your RustDesk custom client build is complete!
 
@@ -548,9 +548,9 @@ These links will expire in 24 hours.
     
     try:
         send_mail(subject, message, _settings.DEFAULT_FROM_EMAIL, [email], fail_silently=False)
-        print(f'Notification email sent to {email}')
+        logger.info("Notification email sent to %s", email)
     except Exception as e:
-        print(f'Failed to send email: {e}')
+        logger.warning("Failed to send email: %s", e)
 
 @csrf_exempt
 def save_custom_client(request):
@@ -572,7 +572,7 @@ def save_custom_client(request):
         if github_run and github_run.email:
             send_notification_email(github_run.email, myuuid, file.name, github_run.platform or 'unknown')
     except Exception as e:
-        print(f'Error sending notification: {e}')
+        logger.warning("Error sending notification: %s", e)
     
     return HttpResponse("File saved successfully!")
 
@@ -600,9 +600,9 @@ def cleanup_secrets(request):
             file_path = os.path.join(temp_dir, safe_filename)
             try:
                 os.remove(file_path)
-                print(f"Successfully deleted {file_path}")
+                logger.info("Successfully deleted %s", file_path)
             except OSError as e:
-                print(f"Error deleting file: {e}")
+                logger.warning("Error deleting file: %s", e)
 
     return HttpResponse("Cleanup successful", status=200)
 
