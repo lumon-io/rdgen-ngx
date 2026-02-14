@@ -17,6 +17,29 @@ from .forms import GenerateForm
 from .models import GithubRun
 from PIL import Image
 from urllib.parse import quote
+import re as _re
+import logging
+
+logger = logging.getLogger(__name__)
+
+_UUID_PATTERN = _re.compile(r'^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$')
+_SAFE_FILENAME = _re.compile(r'^[a-zA-Z0-9._-]+$')
+
+
+def _validate_uuid(value: str) -> str:
+    """Validate and return a UUID string, or raise ValueError."""
+    if not _UUID_PATTERN.match(value):
+        raise ValueError(f"Invalid UUID: {value}")
+    return value
+
+
+def _validate_filename(value: str) -> str:
+    """Validate filename has no path traversal characters."""
+    basename = os.path.basename(value)
+    if not basename or not _SAFE_FILENAME.match(basename):
+        raise ValueError(f"Invalid filename: {value}")
+    return basename
+
 
 def generator_view(request):
     if request.method == 'POST':
@@ -102,7 +125,7 @@ def generator_view(request):
                 if not iconfile:
                     iconfile = form.cleaned_data.get('iconbase64')
                 iconlink_url, iconlink_uuid, iconlink_file = save_png(iconfile,myuuid,full_url,"icon.png")
-            except:
+            except Exception:
                 print("failed to get icon, using default")
                 iconlink_url = "false"
                 iconlink_uuid = "false"
@@ -112,7 +135,7 @@ def generator_view(request):
                 if not logofile:
                     logofile = form.cleaned_data.get('logobase64')
                 logolink_url, logolink_uuid, logolink_file = save_png(logofile,myuuid,full_url,"logo.png")
-            except:
+            except Exception:
                 print("failed to get logo")
                 logolink_url = "false"
                 logolink_uuid = "false"
@@ -122,7 +145,7 @@ def generator_view(request):
                 if not privacyfile:
                     privacyfile = form.cleaned_data.get('privacybase64')
                 privacylink_url, privacylink_uuid, privacylink_file = save_png(privacyfile,myuuid,full_url,"privacy.png")
-            except:
+            except Exception:
                 print("failed to get logo")
                 privacylink_url = "false"
                 privacylink_uuid = "false"
@@ -318,8 +341,11 @@ def generator_view(request):
 
 
 def check_for_file(request):
-    filename = request.GET['filename']
-    uuid = request.GET['uuid']
+    try:
+        filename = _validate_filename(request.GET['filename'])
+        uuid = _validate_uuid(request.GET['uuid'])
+    except (KeyError, ValueError) as e:
+        return HttpResponse(str(e), status=400)
     platform = request.GET['platform']
     gh_run = GithubRun.objects.filter(Q(uuid=uuid)).first()
     status = gh_run.status
@@ -331,10 +357,12 @@ def check_for_file(request):
         return render(request, 'waiting.html', {'filename':filename, 'uuid':uuid, 'status':status, 'platform':platform})
 
 def download(request):
-    filename = request.GET['filename']
-    uuid = request.GET['uuid']
-    #filename = filename+".exe"
-    file_path = os.path.join('exe',uuid,filename)
+    try:
+        filename = _validate_filename(request.GET['filename'])
+        uuid = _validate_uuid(request.GET['uuid'])
+    except (KeyError, ValueError) as e:
+        return HttpResponse(str(e), status=400)
+    file_path = os.path.join('exe', uuid, filename)
     with open(file_path, 'rb') as file:
         response = HttpResponse(file, headers={
             'Content-Type': 'application/vnd.microsoft.portable-executable',
@@ -344,10 +372,12 @@ def download(request):
     return response
 
 def get_png(request):
-    filename = request.GET['filename']
-    uuid = request.GET['uuid']
-    #filename = filename+".exe"
-    file_path = os.path.join('png',uuid,filename)
+    try:
+        filename = _validate_filename(request.GET['filename'])
+        uuid = _validate_uuid(request.GET['uuid'])
+    except (KeyError, ValueError) as e:
+        return HttpResponse(str(e), status=400)
+    file_path = os.path.join('png', uuid, filename)
     with open(file_path, 'rb') as file:
         response = HttpResponse(file, headers={
             'Content-Type': 'application/vnd.microsoft.portable-executable',
@@ -444,6 +474,8 @@ def startgh(request):
     return HttpResponse(status=204)
 
 def save_png(file, uuid, domain, name):
+    uuid = _validate_uuid(uuid)
+    name = _validate_filename(name)
     file_save_path = "png/%s/%s" % (uuid, name)
     Path("png/%s" % uuid).mkdir(parents=True, exist_ok=True)
 
@@ -501,9 +533,13 @@ These links will expire in 24 hours.
         print(f'Failed to send email: {e}')
 
 def save_custom_client(request):
+    try:
+        myuuid = _validate_uuid(request.POST.get('uuid', ''))
+    except ValueError as e:
+        return HttpResponse(str(e), status=400)
     file = request.FILES['file']
-    myuuid = request.POST.get('uuid')
-    file_save_path = "exe/%s/%s" % (myuuid, file.name)
+    safe_name = _validate_filename(file.name)
+    file_save_path = os.path.join('exe', myuuid, safe_name)
     Path("exe/%s" % myuuid).mkdir(parents=True, exist_ok=True)
     with open(file_save_path, "wb+") as f:
         for chunk in file.chunks():
@@ -522,18 +558,21 @@ def save_custom_client(request):
 def cleanup_secrets(request):
     # Pass the UUID as a query param or in JSON body
     data = json.loads(request.body)
-    my_uuid = data.get('uuid')
-    
-    if not my_uuid:
-        return HttpResponse("Missing UUID", status=400)
+    my_uuid = data.get('uuid', '')
+
+    try:
+        my_uuid = _validate_uuid(my_uuid)
+    except ValueError as e:
+        return HttpResponse(str(e), status=400)
 
     # 1. Find the files in your temp directory matching the UUID
     temp_dir = os.path.join('temp_zips')
-    
+
     # We look for any file starting with 'secrets_' and containing the uuid
     for filename in os.listdir(temp_dir):
-        if my_uuid in filename and filename.endswith('.zip'):
-            file_path = os.path.join(temp_dir, filename)
+        safe_filename = _validate_filename(filename)
+        if my_uuid in safe_filename and safe_filename.endswith('.zip'):
+            file_path = os.path.join(temp_dir, safe_filename)
             try:
                 os.remove(file_path)
                 print(f"Successfully deleted {file_path}")
@@ -543,9 +582,11 @@ def cleanup_secrets(request):
     return HttpResponse("Cleanup successful", status=200)
 
 def get_zip(request):
-    filename = request.GET['filename']
-    #filename = filename+".exe"
-    file_path = os.path.join('temp_zips',filename)
+    try:
+        filename = _validate_filename(request.GET['filename'])
+    except (KeyError, ValueError) as e:
+        return HttpResponse(str(e), status=400)
+    file_path = os.path.join('temp_zips', filename)
     with open(file_path, 'rb') as file:
         response = HttpResponse(file, headers={
             'Content-Type': 'application/vnd.microsoft.portable-executable',
@@ -564,12 +605,15 @@ def builds_list(request):
 def build_status(request, uuid):
     """Show status of a specific build"""
     try:
+        uuid = _validate_uuid(uuid)
+    except ValueError as e:
+        return HttpResponse(str(e), status=400)
+    try:
         build = GithubRun.objects.get(uuid=uuid)
     except GithubRun.DoesNotExist:
         return render(request, 'build_not_found.html', {'uuid': uuid})
-    
+
     # Check if files exist
-    import os
     exe_dir = f"exe/{uuid}"
     files = []
     if os.path.exists(exe_dir):
