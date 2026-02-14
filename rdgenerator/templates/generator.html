@@ -337,6 +337,7 @@
     </button>
     <h1><i class="fas fa-cogs"></i> RustDesk Custom Client Builder</h1>
     <form id="myForm" action="/generator" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
         <div class="save-load-section-container">
             <div class="section">
                 <h2 id="saveLoadTitle">Save/Load Configuration <i class="fas fa-chevron-down"></i></h2>  
@@ -539,6 +540,12 @@
         </div>
     </div>
     <script>
+        // ============= CSRF Token Helper =============
+        function getCsrfToken() {
+            return document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+                   document.cookie.split('; ').find(c => c.startsWith('csrftoken='))?.split('=')[1] || '';
+        }
+
         // ============= Theme Toggle =============
         function toggleTheme() {
             const body = document.body;
@@ -974,7 +981,7 @@
             try {
                 const response = await fetch('/api/configs/save', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken()},
                     body: JSON.stringify({name: name, config: formData})
                 });
                 const result = await response.json();
@@ -1024,7 +1031,7 @@
             try {
                 const response = await fetch('/api/configs/delete', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken()},
                     body: JSON.stringify({name: name})
                 });
                 const result = await response.json();
