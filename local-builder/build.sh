@@ -105,7 +105,7 @@ echo "[2/6] Applying customizations..."
 python3 /usr/local/bin/customize.py "$CONFIG_FILE" /build/rustdesk
 
 # Build based on platform
-case $PLATFORM in
+case "$PLATFORM" in
     linux)
         echo "[3/6] Building Rust library..."
         cargo build --lib --features hwcodec,flutter,unix-file-copy-paste --release -j "$JOBS"
@@ -119,11 +119,18 @@ case $PLATFORM in
         cd ..
         # Create simple tarball for now
         APPNAME=$(python3 -c "import json; print(json.load(open('$CONFIG_FILE')).get('exename', 'rustdesk'))")
+
+        # Validate APPNAME contains only safe characters
+        if [[ ! "$APPNAME" =~ ^[a-zA-Z0-9._-]+$ ]]; then
+            echo "ERROR: APPNAME contains unsafe characters: $APPNAME"
+            exit 1
+        fi
+
         mkdir -p "$OUTPUT_DIR"
-        tar -czvf "$OUTPUT_DIR/${APPNAME}-linux-x64.tar.gz" -C build/linux/x64/release/bundle .
+        tar -czvf "${OUTPUT_DIR}/${APPNAME}-linux-x64.tar.gz" -C build/linux/x64/release/bundle .
 
         echo "[6/6] Done!"
-        echo "Output: $OUTPUT_DIR/${APPNAME}-linux-x64.tar.gz"
+        echo "Output: ${OUTPUT_DIR}/${APPNAME}-linux-x64.tar.gz"
         ;;
 
     windows)
@@ -147,8 +154,15 @@ case $PLATFORM in
 
         echo "[5/6] Packaging..."
         APPNAME=$(python3 -c "import json; print(json.load(open('$CONFIG_FILE')).get('exename', 'rustdesk'))")
+
+        # Validate APPNAME contains only safe characters
+        if [[ ! "$APPNAME" =~ ^[a-zA-Z0-9._-]+$ ]]; then
+            echo "ERROR: APPNAME contains unsafe characters: $APPNAME"
+            exit 1
+        fi
+
         mkdir -p "$OUTPUT_DIR"
-        cp target/x86_64-pc-windows-gnu/release/*.exe "$OUTPUT_DIR/" 2>/dev/null || true
+        cp target/x86_64-pc-windows-gnu/release/*.exe "${OUTPUT_DIR}/" 2>/dev/null || true
 
         echo "[6/6] Done!"
         echo "Output: $OUTPUT_DIR/"

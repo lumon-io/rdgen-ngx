@@ -11,6 +11,10 @@ import sys
 import base64
 from pathlib import Path
 
+def _escape_for_replacement(value: str) -> str:
+    """Escape a string for use in re.sub replacement."""
+    return value.replace('\\', '\\\\')
+
 def load_config(config_path):
     """Load configuration from JSON file"""
     with open(config_path, 'r') as f:
@@ -87,14 +91,16 @@ def customize_rustdesk(config, source_dir):
         consts_path = 'src/common.rs'
 
         if server_ip:
+            safe_server_ip = _escape_for_replacement(server_ip)
             regex_replace_in_file(consts_path,
                 r'pub const RENDEZVOUS_SERVER: &str = "[^"]*"',
-                f'pub const RENDEZVOUS_SERVER: &str = "{server_ip}"')
+                f'pub const RENDEZVOUS_SERVER: &str = "{safe_server_ip}"')
 
         if server_key:
+            safe_server_key = _escape_for_replacement(server_key)
             regex_replace_in_file(consts_path,
                 r'pub const PUBLIC_RS_PUB_KEY: &str = "[^"]*"',
-                f'pub const PUBLIC_RS_PUB_KEY: &str = "{server_key}"')
+                f'pub const PUBLIC_RS_PUB_KEY: &str = "{safe_server_key}"')
 
     # === Company Name ===
     compname = config.get('compname', '')
